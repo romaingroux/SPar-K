@@ -1,0 +1,50 @@
+
+# compilation flags
+ccflags = "-std=c++11 -O2 -Wall -Wextra -Werror -Wfatal-errors -pedantic"
+
+
+# a path which should be added to all include directive to make them correct
+cpppath = "../src/"
+
+
+# library to use and the library path
+lib_unittest_path = "/usr/local/lib/UnitTest++" # modify if required
+lib_boost_path    = "/usr/local/lib/boost"      # modify if required
+lib_paths = [lib_unittest_path, lib_boost_path]
+libs      = ["pthread", "libUnitTest++", "libboost_program_options"]
+
+
+# Source files:
+clustering_src  = Glob("Clustering/*.cpp")
+parallel_src    = Glob("Parallel/*.cpp")
+random_src      = Glob("Random/*.cpp")
+statistiscs_src = Glob("Statistics/*.cpp")
+gui_src         = Glob("GUI/*.cpp")
+test_src        = Glob("Unittests/*.cpp")
+utility_src     = Glob("Utility/*.cpp")
+
+
+# Source file containing main()
+app_main_src     = Glob("Application.cpp")
+test_main_src    = Glob("unittests.cpp")
+
+
+# Source file groups
+misc_src = random_src + statistiscs_src + utility_src
+
+
+# compilation instructions for every module
+clustering_obj       = Object(clustering_src,   CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+parallel_obj         = Object(parallel_src,     CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+gui_obj              = Object(gui_src,          CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+misc_obj             = Object(misc_src,         CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+test_obj             = Object(test_src,         CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+test_main_obj        = Object(test_main_src,    CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+app_main_obj         = Object(app_main_src,     CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+
+# unittest program compilation
+Program("unittests", test_main_obj + test_obj + misc_obj + clustering_obj + parallel_obj, CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+
+# clustering program compilation
+Program("spark", app_main_obj + misc_obj + parallel_obj + clustering_obj + gui_obj, CCFLAGS=ccflags, CPPPATH=cpppath, LIBS=libs, LIBPATH=lib_paths)
+
