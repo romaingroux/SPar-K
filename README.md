@@ -88,7 +88,7 @@ bin/unittests
 
 
 ### From the Singularity image
-The Singularity image is build using [the current release](https://github.com/romaingroux/SPar-K/releases) source code.
+The Singularity image is build using [the latest release](https://github.com/romaingroux/SPar-K/releases) source code.
 
 #### Prerequisites
 You need to have Singularity installed on your machine. Check [this link](https://singularity.lbl.gov/install-linux) for more informations.
@@ -111,7 +111,7 @@ singularity exec spar-k.simg spark <options>
 
 
 ### From the Docker image
-The Docker image is build using [the current release](https://github.com/romaingroux/SPar-K/releases) source code.
+The Docker image is build using [the latest release](https://github.com/romaingroux/SPar-K/releases) source code.
 
 #### Prerequisites
 You need to have Docker installed on your machine. Check [this link](https://www.docker.com/get-started) for more informations. Depending on your installation, you may need root privileges.
