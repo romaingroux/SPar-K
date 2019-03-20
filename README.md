@@ -33,7 +33,7 @@ SPar-K returns a table through the stdout. It contains a header row and as many 
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. To run SPar-K, you have two options. You can either choose to download a release source code or download the corresponding Singularity image. Both procedures are detailes below.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. To run SPar-K, you have three options. You can either choose to download a release source code, to download a Docker image or a Singularity image. All procedures are detailed below.
 
 ### From the release source code
 #### Prerequisites
@@ -86,21 +86,21 @@ At compilation, a test suite is also compiled and placed in bin/. To run it and 
 bin/unittests
 ```
 
-### From Singularity image
+
+### From the Singularity image
 The Singularity image is build using [the current release](https://github.com/romaingroux/SPar-K/releases) source code.
 
 #### Prerequisites
-
 You need to have Singularity installed on your machine. Check [this link](https://singularity.lbl.gov/install-linux) for more informations.
 
 #### Pulling the image
-Once you have a working version of singularity, you can pull the image from Singularity Hub using this command
+Once you have a working version of Singularity, you can pull the image from Singularity Hub using this command
 ```
 singularity pull --name spar-k.simg shub://romaingroux/SPar-K:latest
 ```
 
 #### Running SPar-K from the image
-Using SPar-K from singularity is just as the same as using the compiled executable, excepted that the commands require to contain a call to S ingularity. For instance, to get SPar-K help, use :
+Using SPar-K from Singularity is just as the same as using the compiled executable, excepted that the commands require to contain a call to Singularity. For instance, to get SPar-K help, use :
 ```
 singularity exec spar-k.simg spark --help
 ```
@@ -108,6 +108,28 @@ To run SPar-K, use :
 ```
 singularity exec spar-k.simg spark <options>
 ```
+
+
+### From the Docker image
+The Docker image is build using [the current release](https://github.com/romaingroux/SPar-K/releases) source code.
+
+#### Prerequisites
+You need to have Docker installed on your machine. Check [this link](https://www.docker.com/get-started) for more informations. Depending on your installation, you may need root privileges.
+
+#### Pulling the image
+Once you have a working version of Docker, you can pull the image from Docker Hub using this command
+```
+docker pull rgroux/spar-k:latest
+```
+
+#### Running SPar-K from the image
+Using SPar-K from Docker only requires to deploy a container and call SPar-K. For simplicity, let's tag the image as 'spar-k' (this will be assumed in all the following Docker related documentation). For instance, to get SPar-K help, use :
+```
+docker tag  rgroux/spar-k:latest spar-k
+
+docker run -i spar-k spark --help
+```
+You noticed that we called the image by its tag name (spar-k), inside which we ran SPar-K executable (spark).
 
 
 ## Programs
@@ -126,7 +148,8 @@ This is the main program. spark is the partitioning software.
   | -r    | \-\-references  arg | The cluster reference pattern file address. |
   | -i    | \-\-iter  arg       | The maximum number of iterations. |
   | -c    | \-\-cluster  arg    | The number of cluster to find. |
-  | -s    | \-\-shift  arg      | Enables this number of column of shifting freedom. By default, shifting is disabled (equivalent to \-\-shift  1). |
+  | -s    | \-\-shift  arg      | Enables this number of column of shifting freedom. By default, shifting is disabled (equivalent to --shift 1). This option and --width are mutually exclusive |
+  | -w    | \-\-width           | Enables shifting by searching signal profiles of the given width. Setting --width L' is equivalent to set --shift L-L'+1 where L is the length of each region (the number of columns in the input matrix). By default, the profile width is equal to region width (L). This option and --shift are mutually exclusive.
   |       | \-\-flip            | Enables flipping. |
   |       | \-\-nooutlier       | Pre-pcocess the data to smooth out outliers from the data in a row-wise manner. Each row is searched for outliers which are defined as any value bigger/smaller than the row mean +/- 3*row standard deviation. If a value is an outlier it is replaced by the mean of its left and right neighbours. If a has only a left/right neighbour, then the two left/right neighbours are averaged. If several outliers follow each other the above process is applied to the values in a left to right order and at the end the new averaged values may still be outliers. |
   |       | \-\-dist arg        | Specify which distance should be used during the clustering. It should be 'corr' (by default) or 'normcorr'. |
@@ -156,45 +179,72 @@ If you are using the Singularity image, use :
 ```
 singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
 ```
-As SPar-K implementation is fully multi-threaded, you can speed up the partitioning processes by dispatching the computations on several CPU cores. To do so, you need to use the -p option. For instance, to use 4 concurrent threads :
+If you are using the Docker image, use :
+```
+docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
+```
+The data 'data.txt' are contained within the image so there is no need to create a mount point between the host file system and the container file system yet. However, for cases where the data are outside the container (on the host file system) or when the results have to be sent outside the container (to the host file system), this will be required. It can be done as follows :
 
 ```
-bin/spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4
+docker run -i -v <current dir>:/mount spar-k spark --data /mount/data_from_host.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
 ```
-or with Singularity : 
+where \<current dir\> is the absolute path to the current directory. On linux plateforms, you can use '$(pwd)'. Examples with a mount points can be found below.
+
+As SPar-K implementation is fully multi-threaded, you can speed up the partitioning processes by dispatching the computations on several CPU cores. To do so, you need to use the -p option. For instance, to use 4 concurrent threads :
 ```
-singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4
+bin/spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
+```
+
+With the Singularity image : 
+```
+singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
+```
+
+With the Docker image :
+```
+docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
 
 ### spark_plot_heatmap.R
 This program is an R script. Once a dataset has been partitioned using SPar-K, this script produces a heatmap of the results. 
 
-Let's follow again the previous example. Now that you have your partition, you would like to display a nice heatmap. Let's assume that the results are stored in results.txt. You would like to have the regions grouped by cluster and realigned as SPar-K aligned them. You can produce a plot of the data, realigned and ordered by cluster using :
+Let's follow again the previous example. Now that you have your partition, you would like to display a nice heatmap. You would like to have the regions grouped by cluster and realigned as SPar-K aligned them. You can produce a plot of the data, realigned and ordered by cluster using :
 
 ```
-Rscript bin/spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output "myplot.png"
+Rscript bin/spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
 ```
 
-If you are using the Singularity image, use :
+With the Singularity image :
 ```
-singularity exec spar-k.simg spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output "myplot.png"
+singularity exec spar-k.simg spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
 ```
 
-For help, run :
+With the Docker image :
+```
+docker run -i -v <current dir>:/mount spar-k spark_plot_heatmap.R --data data.txt --partition /mount/results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output /mount/myplot.png
+```
+You noticed here the use of a mount point to read data from the host file system and to send the results to the host file system.
+
+To get the help, run :
 
 ```
 Rscript bin/spark_plot_heatmap.R --help
 ```
 
-If you are using the Singularity image, use :
+With the Singularity image :
 ```
 singularity exec spar-k.simg spark_plot_heatmap.R --help
+```
+
+With the Docker image :
+```
+docker run -i spar-k spark_plot_heatmap.R --help
 ```
 
 ### spark_correct_sga.R
 This program is an R script. Once a dataset has been partitioned using SPar-K, this scripts allows to update the corresponding SGA file according to the shift and flip values reported by SPar-K. 
 
-Let's use the previous partitioning example (again). You have partitioned a dataset containing 23360 rows of length 99 with a shifting freedom of 7 and without flipping. Let's assume that the results are stored in results.txt and the TSS positions in a SGA file named references.sga ([about the SGA file format](https://ccg.vital-it.ch/chipseq/sga_specs.php)). Here are the first 4 lines :
+Let's use the previous partitioning example (again). You have partitioned a dataset containing 23360 rows of length 99 with a shifting freedom of 7 and without flipping, the results are stored in results.txt and the TSS positions in a SGA file named references.sga ([about the SGA file format](https://ccg.vital-it.ch/chipseq/sga_specs.php)). Here are the first 4 lines :
 ```
 NC_000001.10	TSS	   861123	+	1	SAMD11_1	2
 NC_000001.10	TSS	   874653	+	1	SAMD11_2	2
@@ -208,9 +258,13 @@ Then, you can update the positions according to what SPar-K found to be the opti
 Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20
 ```
 
-If you are using the Singularity image, use :
+With the Singularity image (note that references.sga is inside the image) :
 ```
 singularity exec spar-k.simg spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20
+```
+With the Docker image (note that references.sga is inside the image) :
+```
+docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20
 ```
 
 If you want to correct only the reference positions of regions which were assigned to a given cluster - let's say cluster 2 - then you can run :
@@ -218,9 +272,15 @@ If you want to correct only the reference positions of regions which were assign
 ```
 Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
 ```
-If you are using the Singularity image, use :
+
+With the Singularity image (note that references.sga is inside the image):
 ```
 singularity exec spar-k.simg spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
+```
+
+With the Docker image (note that references.sga is inside the image) :
+```
+docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
 ```
 
 For help, run :
@@ -229,11 +289,15 @@ For help, run :
 Rscript bin/spark_correct_sga.R --help
 ```
 
-If you are using the Singularity image, use :
+With the Singularity image :
 ```
 singularity exec spar-k.simg spark_correct_sga.R --help
 ```
 
+With the Docker image :
+```
+docker run -i spar-k spark_correct_sga.R --help
+```
 
 ## Authors
 

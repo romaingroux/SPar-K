@@ -16,7 +16,7 @@
 
 
 // some global variables
-std::string version("SPar-K v1.0") ;
+std::string version("SPar-K v1.01") ;
 // possible seeding mode options
 static std::string seeding_random   = "random" ;
 static std::string seeding_kmean_pp = "kmean++" ;
@@ -48,7 +48,8 @@ void Application::setOptions(int argn, char** argv)
     this->options.thread_n = 1 ;
     this->options.iteration_n = 1 ;
     this->options.cluster_n = 1 ;
-    this->options.shift_n = 1 ;
+    this->options.shift_n = 0 ;    // shift is false
+    this->options.width_n = 0 ;    // width is false
     this->options.flip = false ;
     this->options.no_outlier = false ;
     this->options.debug = false ;
@@ -79,13 +80,20 @@ void Application::setOptions(int argn, char** argv)
     std::string opt_version_msg    = "Prints the version number";
     std::string opt_parallel_msg   = "The number of threads dedicated to the "
                                      "computations, by default 1.";
-    std::string opt_data_msg       = "The data file address.";
-    std::string opt_references_msg = "The cluster reference pattern file address.";
+    std::string opt_data_msg       = "The data file path.";
+    std::string opt_references_msg = "The cluster reference pattern file path.";
     std::string opt_iter_msg       = "The maximum number of iterations." ;
     std::string opt_cluster_msg    = "The number of cluster to find." ;
     std::string opt_shift_msg      = "Enables this number of column of shifting "
                                      "freedom. By default, shifting is "
-                                     "disabled (equivalent to --shift 1)." ;
+                                     "disabled (equivalent to --shift 1)."
+                                     "This option and --width are mutually exclusive." ;
+    std::string opt_prof_width_msg = "Enables shifting by searching signal profiles of the "
+                                     "given width. Setting --width L' is equivalent to "
+                                     "set --shift L-L'+1 where L is the length of each region "
+                                     "(the number of columns in the input matrix)."
+                                     "By default, the profile width is equal to region width (L)."
+                                     "This option and --shift are mutually exclusive." ;
     std::string opt_flip_msg       = "Enables flipping.";
     std::string opt_no_outlier_msg = "Pre-pcocess the data to smooth out outliers from the data in a "
                                      "row-wise manner. Each row is searched for outliers which are defined "
@@ -130,6 +138,7 @@ void Application::setOptions(int argn, char** argv)
             ("iter,i",       po::value<size_t>(&(this->options.iteration_n)),    opt_iter_msg.c_str())
             ("cluster,c",    po::value<size_t>(&(this->options.cluster_n)),      opt_cluster_msg.c_str())
             ("shift,s",      po::value<size_t>(&(this->options.shift_n)),        opt_shift_msg.c_str())
+            ("width,w",      po::value<size_t>(&(this->options.width_n)),        opt_prof_width_msg.c_str())
             ("flip",         opt_flip_msg.c_str())
             ("nooutlier",    opt_no_outlier_msg.c_str())
             ("dist",         po::value<std::string>(&(this->options.distance)),  opt_dist_msg.c_str())
@@ -169,6 +178,15 @@ void Application::setOptions(int argn, char** argv)
     {   std::cerr << "Error! Unrecognized distance (--dist)!" << std::endl ;
         this->exit_code = EXIT_FAILURE ;
     }
+    else if(this->options.shift_n > 0 and this->options.width_n > 0)
+    {   std::cerr << "Error! --shift and --width are mutually exclusive! Choose the "
+                     "shifting freedom (-shift) or the profile width (--width)!" << std::endl ;
+        this->exit_code = EXIT_FAILURE ;
+    }
+
+    // no shift given (value of 1)
+    if(this->options.shift_n == 0 and this->options.width_n == 0)
+    {   this->options.shift_n = 1 ; }
 
     if(vm.count("help"))      { std::cout << desc << std::endl ; this->exit_code = EXIT_FAILURE ; }
     if(vm.count("version"))   { std::cout << version << std::endl ; this->exit_code = EXIT_FAILURE ; }
@@ -178,26 +196,28 @@ void Application::setOptions(int argn, char** argv)
 }
 
 
-bool Application::isDebugOn()
+bool Application::isDebugOn() const
 {   return this->options.debug ; }
 
+void Application::printDebugInfo(std::ostream& stream) const
+{   if(this->isDebugOn())
+    {   stream << "data file      " << this->options.file_data   << std::endl ;
+        stream << "reference file " << this->options.file_data   << std::endl ;
+        stream << "iteration      " << this->options.iteration_n << std::endl ;
+        stream << "clusters       " << this->options.cluster_n   << std::endl ;
+        stream << "shifts         " << this->options.shift_n     << std::endl ;
+        stream << "flip           " << this->options.flip        << std::endl ;
+        stream << "nooutler       " << this->options.no_outlier  << std::endl ;
+        stream << "distance       " << this->options.distance    << std::endl ;
+        stream << "seed           " << this->options.seed        << std::endl ;
+        stream << "seeding        " << this->options.seeding     << std::endl ;
+        stream << "threads        " << this->options.thread_n    << std::endl ;
+    }
+}
 
 int Application::run()
 {   try
     {
-        if(this->isDebugOn())
-        {   std::cerr << "data file      " << this->options.file_data   << std::endl ;
-            std::cerr << "reference file " << this->options.file_data   << std::endl ;
-            std::cerr << "iteration      " << this->options.iteration_n << std::endl ;
-            std::cerr << "clusters       " << this->options.cluster_n   << std::endl ;
-            std::cerr << "shifts         " << this->options.shift_n     << std::endl ;
-            std::cerr << "flip           " << this->options.flip        << std::endl ;
-            std::cerr << "nooutler       " << this->options.no_outlier  << std::endl ;
-            std::cerr << "distance       " << this->options.distance    << std::endl ;
-            std::cerr << "seed           " << this->options.seed        << std::endl ;
-            std::cerr << "seeding        " << this->options.seeding     << std::endl ;
-            std::cerr << "threads        " << this->options.thread_n    << std::endl ;
-        }
         // something occured, cannot continue
         if(this->exit_code != 0)
         {   return this->exit_code ; }
@@ -208,6 +228,12 @@ int Application::run()
             Matrix2D<double> data(this->options.file_data) ;
             if(this->options.no_outlier)
             {   smooth_outliers(data) ; }
+
+            // convert profile width into shift
+            if(this->options.shift_n == 0 and this->options.width_n > 0)
+            {   this->options.shift_n = data.get_ncol() - this->options.width_n + 1 ; }
+
+            this->printDebugInfo(std::cerr) ;
 
             // instantiate the clustering object
             ClusteringEngine* engine = nullptr ;

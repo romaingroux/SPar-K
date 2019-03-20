@@ -11,6 +11,7 @@ struct options
     size_t iteration_n ;
     size_t cluster_n ;
     size_t shift_n ;
+    size_t width_n ;
     bool flip ;
     bool no_outlier ;
     bool debug ;
@@ -64,11 +65,17 @@ class Application
         void setOptions(int argn, char** argv) ;
 
         /*!
-         * \brief checks whether debugging verbosity is on
+         * \brief Checks whether debugging verbosity is on
          * (this->options.debug).
          * \return  whether debugging verbosity is on.
          */
-        bool isDebugOn() ;
+        bool isDebugOn() const ;
+
+        /*!
+         * \brief Prints debug informations if the debug flag is on.
+         * \param stream the stream to display on.
+         */
+        void printDebugInfo(std::ostream& stream) const ;
 
         // fields
         /*!
