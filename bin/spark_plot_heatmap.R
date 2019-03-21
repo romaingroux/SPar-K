@@ -197,6 +197,18 @@ opt$dim   = as.numeric(unlist(strsplit(opt$dim, split=",")))
 opt$res   = ifelse(is.null(opt$res), 72, opt$res)
 img.param = list(width=opt$dim[1], height=opt$dim[2], res=opt$res, pointsize=12)
 
+# setwd("/local/groux/Kmeans_chipseq")
+# opt = list()
+# opt$data = "data_8.txt"
+# opt$partition = "results_8.txt"
+# opt$shift = 71
+# opt$from = -1000
+# opt$to = 1000
+# opt$title = "TSS with H3K4me3"
+# opt$dim = c(8,10)
+# opt$res = 72
+# img.param = list(width=opt$dim[1], height=opt$dim[2], res=opt$res, pointsize=12)
+
 # check options
 if(is.null(opt$data))
 { stop("Error! no data given (--data)") }
@@ -253,12 +265,12 @@ for(j in 1:n.cluster)
 { index                   = which(partition$cluster == j)
   to                      = from + length(index) -1
   d[from:to,]             = order.rows(data[index,])
-  data.aligned[from:to,]  = realign.data(data[index,], 
+  data.aligned[from:to,]  = realign.data(data[index,, drop=F], 
                                          partition$shift_ref[index], 
                                          partition$shift_dat[index], 
                                          partition$flip[index], opt$shift)
-  order                   = get.row.order(data.aligned[from:to,])
-  data.aligned[from:to,]  = data.aligned[from:to,][order,]
+  order                   = get.row.order(data.aligned[from:to,, drop=F])
+  data.aligned[from:to,]  = data.aligned[from:to,, drop=F][order,]
   labels[from:to]  = color.lab[j]
   from = to + 1
 }
