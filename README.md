@@ -299,7 +299,7 @@ With the Docker image :
 docker run -i spar-k spark_correct_sga.R --help
 ```
 
-### spark_correct_sga.R
+### spark_realign_data.R
 This program is an R script. It is able to realign the data matrix given a SPar-K partition. That is, the orignal data are shifted and flipped as SPar-K did during the partitioning process. The row order between the input and the output is preservered. However, the row content will be modified as only one sub-part of each original row is present in each output row. Additionally, the sub-part may be flipped (if it was flipped by SPar-K). This script can be useful to realign the data in order to do a figure.
 
 
