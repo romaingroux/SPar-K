@@ -52,7 +52,7 @@ The Scons configuration files SConstruct and SConscript are configured such that
 so it is highly recommanded to install these libraries here. Another solution is to modify the SConscript file (located in src/)
 to adapt the library paths (modify the lib_unittest_path and lib_boost_path variable values).
 
-The following softwares and libraries are required to run the auxiliary scipts spark_correct_sga.R and spark_plot_heatmap.R :
+The following softwares and libraries are required to run the auxiliary scripts spark_correct_sga.R and spark_plot_heatmap.R :
 
 	1) R version 3.X and Rscript to run these scripts in batch mode
 	2) the R libraries optparse and RColorBrewer
@@ -175,15 +175,15 @@ The data were organized such that all the TSS are oriented in the same direction
 bin/spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
 ```
 
-If you are using the Singularity image, use :
+With the Singularity image (note that data.txt is inside the image) :
 ```
 singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
 ```
-If you are using the Docker image, use :
+With the Docker image (note that data.txt is inside the image) :
 ```
 docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
 ```
-The data 'data.txt' are contained within the image so there is no need to create a mount point between the host file system and the container file system yet. However, for cases where the data are outside the container (on the host file system) or when the results have to be sent outside the container (to the host file system), this will be required. It can be done as follows :
+The data 'data.txt' are contained within the image and the results are retrieved by a stream redirection so there is no need to create a mount point between the host file system and the image file system yet. However, for cases where the data are in a file outside the image (on the host file system) or when the results have to be sent to a file outside the image (to the host file system), this will be required. It can be done as follows :
 
 ```
 docker run -i -v <current dir>:/mount spar-k spark --data /mount/data_from_host.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
@@ -195,12 +195,12 @@ As SPar-K implementation is fully multi-threaded, you can speed up the partition
 bin/spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
 
-With the Singularity image : 
+With the Singularity image (note that data.txt is inside the image) : 
 ```
 singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
 
-With the Docker image :
+With the Docker image (note that data.txt is inside the image) :
 ```
 docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
@@ -214,12 +214,12 @@ Let's follow again the previous example. Now that you have your partition, you w
 Rscript bin/spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
 ```
 
-With the Singularity image :
+With the Singularity image (note that data.txt is inside the image but not results.txt) :
 ```
 singularity exec spar-k.simg spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
 ```
 
-With the Docker image :
+With the Docker image (note that data.txt is inside the image but not results.txt) :
 ```
 docker run -i -v <current dir>:/mount spar-k spark_plot_heatmap.R --data data.txt --partition /mount/results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output /mount/myplot.png
 ```
@@ -258,11 +258,11 @@ Then, you can update the positions according to what SPar-K found to be the opti
 Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20
 ```
 
-With the Singularity image (note that references.sga is inside the image) :
+With the Singularity image (note that references.sga is inside the image but not results.txt) :
 ```
 singularity exec spar-k.simg spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20
 ```
-With the Docker image (note that references.sga is inside the image) :
+With the Docker image (note that references.sga is inside the image but not results.txt) :
 ```
 docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20
 ```
@@ -273,12 +273,12 @@ If you want to correct only the reference positions of regions which were assign
 Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
 ```
 
-With the Singularity image (note that references.sga is inside the image):
+With the Singularity image (note that references.sga is inside the image but not results.txt):
 ```
 singularity exec spar-k.simg spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
 ```
 
-With the Docker image (note that references.sga is inside the image) :
+With the Docker image (note that references.sga is inside the image but not results.txt) :
 ```
 docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
 ```
@@ -298,6 +298,43 @@ With the Docker image :
 ```
 docker run -i spar-k spark_correct_sga.R --help
 ```
+
+### spark_correct_sga.R
+This program is an R script. It is able to realign the data matrix given a SPar-K partition. That is, the orignal data are shifted and flipped as SPar-K did during the partitioning process. The row order between the input and the output is preservered. However, the row content will be modified as only one sub-part of each original row is present in each output row. Additionally, the sub-part may be flipped (if it was flipped by SPar-K). This script can be useful to realign the data in order to do a figure.
+
+
+Let's use the previous partitioning example (ad nauseam). You have partitioned a dataset containing 23360 rows of length 99 with a shifting freedom of 7 and without flipping, the results are stored in results.txt. If you are interested in accessing the realigned data (to plot a heatmap for instance), you can get it by invoking:
+
+```
+Rscript bin/spark_realign_data.R --data data.txt --partition results.txt --shift 7 > data_aligned.txt
+```
+
+With the Singularity image (note that data.txt is inside the image but not results.txt) :
+```
+singularity exec spar-k.simg spark_realign_data.R --data data.txt --partition results.txt --shift 7 > data_aligned.txt
+```
+
+With the Docker image (note that data.txt is inside the image but not results.txt) :
+```
+docker run -i -v <current dir>:/mount spar-k spark_realign_data.R --data data.txt --partition /mount/results.txt --shift 7 > data_aligned.txt
+```
+
+For help, run :
+
+```
+Rscript bin/spark_realign_data.R --help
+```
+
+With the Singularity image :
+```
+singularity exec spar-k.simg spark_realign_data.R --help
+```
+
+With the Docker image :
+```
+docker run -i spar-k spark_realign_data.R --help
+```
+
 
 ## Authors
 
