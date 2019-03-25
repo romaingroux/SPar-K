@@ -133,7 +133,7 @@ You noticed that we called the image by its tag name (spar-k), inside which we r
 
 
 ## Programs
-The following three programs are distributed :
+The following programs are distributed :
 
 ### spark
 This is the main program. spark is the partitioning software.
