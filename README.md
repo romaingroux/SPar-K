@@ -175,18 +175,18 @@ The data were organized such that all the TSS are oriented in the same direction
 bin/spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
 ```
 
-With the Singularity image (note that data.txt is inside the image) :
+With the Singularity image (note that data.txt is inside /SPar-K in the image but results.txt is on the host) :
 ```
-singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
+singularity exec spar-k.simg spark --data /SPar-K/data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 > results.txt
 ```
-With the Docker image (note that data.txt is inside the image) :
+With the Docker image (note that data.txt is inside the image but results.txt is on the host) :
 ```
-docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
+docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 > results.txt
 ```
-The data 'data.txt' are contained within the image and the results are retrieved by a stream redirection so there is no need to create a mount point between the host file system and the image file system yet. However, for cases where the data are in a file outside the image (on the host file system) or when the results have to be sent to a file outside the image (to the host file system), this will be required. It can be done as follows :
+The data 'data.txt' are contained within the image and the results are retrieved by a stream redirection so there is no need to create a mount point between the host file system and the image file system yet. However, for cases where the data are in a file outside the image (on the host file system) or when a process inside the image has to write in a file outside the image (to the host file system), this will be required. It can be done as follows :
 
 ```
-docker run -i -v <current dir>:/mount spar-k spark --data /mount/data_from_host.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234
+docker run -i -v <current dir>:/mount spar-k spark --data /mount/data_from_host.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 > results.txt
 ```
 where \<current dir\> is the absolute path to the current directory. On linux plateforms, you can use '$(pwd)'. Examples with a mount points can be found below.
 
@@ -195,12 +195,12 @@ As SPar-K implementation is fully multi-threaded, you can speed up the partition
 bin/spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
 
-With the Singularity image (note that data.txt is inside the image) : 
+With the Singularity image (note that data.txt is inside /SPar-K in the image but results.txt is on the host) : 
 ```
-singularity exec spar-k.simg spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
+singularity exec spar-k.simg spark --data /SPar-K/data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
 
-With the Docker image (note that data.txt is inside the image) :
+With the Docker image (note that data.txt is inside the image but results.txt is on the host) :
 ```
 docker run -i spar-k spark --data data.txt --cluster 4 --shift 7 --iter 30 --seeding kmean++ --seed 1234 -p 4 > results.txt
 ```
@@ -214,16 +214,16 @@ Let's follow again the previous example. Now that you have your partition, you w
 Rscript bin/spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
 ```
 
-With the Singularity image (note that data.txt is inside the image but not results.txt) :
+With the Singularity image (note that data.txt is inside /SPar-K in the image but myplot.png is on the host) :
 ```
-singularity exec spar-k.simg spark_plot_heatmap.R --data data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
+singularity exec spar-k.simg spark_plot_heatmap.R --data /SPar-K/data.txt --partition results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output myplot.png
 ```
 
-With the Docker image (note that data.txt is inside the image but not results.txt) :
+With the Docker image (note that data.txt is inside the image but myplot.png is on the host) :
 ```
 docker run -i -v <current dir>:/mount spar-k spark_plot_heatmap.R --data data.txt --partition /mount/results.txt --shift 7 --from -1000 --to 1000 --title "TSS with H3K4me3" --output /mount/myplot.png
 ```
-You noticed here the use of a mount point to read data from the host file system and to send the results to the host file system.
+You can notice here the use of a mount point to read data from the host file system and to write a file on the host file system.
 
 To get the help, run :
 
@@ -255,32 +255,32 @@ NC_000001.10	TSS	   895964	+	1	KLHL17_1	2
 Then, you can update the positions according to what SPar-K found to be the optimal alignment using :
 
 ```
-Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20
+Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 > references_aligned.sga
 ```
 
-With the Singularity image (note that references.sga is inside the image but not results.txt) :
+With the Singularity image (note that references.sga is inside /SPar-K in the image but results.sga is on the host) :
 ```
-singularity exec spar-k.simg spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20
+singularity exec spar-k.simg spark_correct_sga.R --sga /SPar-K/references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 > results.sga
 ```
-With the Docker image (note that references.sga is inside the image but not results.txt) :
+With the Docker image (note that references.sga is inside the image but results.sga is on the host) :
 ```
-docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20
+docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20 > results.sga
 ```
 
 If you want to correct only the reference positions of regions which were assigned to a given cluster - let's say cluster 2 - then you can run :
 
 ```
-Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
+Rscript bin/spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2 > references_c2_aligned.sga
 ```
 
-With the Singularity image (note that references.sga is inside the image but not results.txt):
+With the Singularity image (note that references.sga is inside /SPar-K in the image but results.sga is on the host):
 ```
-singularity exec spar-k.simg spark_correct_sga.R --sga references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
+singularity exec spar-k.simg spark_correct_sga.R --sga /SPar-K/references.sga --partition results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2 > results.sga
 ```
 
-With the Docker image (note that references.sga is inside the image but not results.txt) :
+With the Docker image (note that references.sga is inside the image but results.sga is on the host) :
 ```
-docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2
+docker run -i -v <current dir>:/mount spar-k spark_correct_sga.R --sga references.sga --partition /mount/results.txt --shift 7 --ncol 99 --binSize 20 --cluster 2 > results.sga
 ```
 
 For help, run :
@@ -309,12 +309,12 @@ Let's use the previous partitioning example (ad nauseam). You have partitioned a
 Rscript bin/spark_realign_data.R --data data.txt --partition results.txt --shift 7 > data_aligned.txt
 ```
 
-With the Singularity image (note that data.txt is inside the image but not results.txt) :
+With the Singularity image (note that data.txt is inside /SPar-K in the image but data_aligned.txt is on the host) :
 ```
-singularity exec spar-k.simg spark_realign_data.R --data data.txt --partition results.txt --shift 7 > data_aligned.txt
+singularity exec spar-k.simg spark_realign_data.R --data /SPar-K/data.txt --partition results.txt --shift 7 > data_aligned.txt
 ```
 
-With the Docker image (note that data.txt is inside the image but not results.txt) :
+With the Docker image (note that data.txt is inside the image but data_aligned.txt is on the host) :
 ```
 docker run -i -v <current dir>:/mount spar-k spark_realign_data.R --data data.txt --partition /mount/results.txt --shift 7 > data_aligned.txt
 ```
