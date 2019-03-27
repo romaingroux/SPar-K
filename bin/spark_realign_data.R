@@ -3,8 +3,15 @@
 library(optparse,     quietly=T)
 library(RColorBrewer, quietly=T)
 
+# get script dir
+initial.options = commandArgs(trailingOnly = FALSE)
+file.arg.name = "--file="
+script.name = sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+script.dir = file.path(getwd(), dirname(script.name))
+
 # functions
-source(file.path("bin", "spark_functions.R"))
+print(script.dir)
+source(file.path(script.dir, "spark_functions.R"))
 
 # usage
 usage = "Rscript realign_data.R [options]\n"
