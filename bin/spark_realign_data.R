@@ -4,46 +4,7 @@ library(optparse,     quietly=T)
 library(RColorBrewer, quietly=T)
 
 # functions
-#' A function to realign data according to the results of the clustering
-#' process.
-#' @param data a matrix (m x n) of data to realign.
-#' @param shifts.ref a vector (m) of int, corresponding to the shift.ref
-#' field return by the clustering process.
-#' @param shifts.dat a vector (m) of int, corresponding to the shift.dat
-#' field return by the clustering process.
-#' @param flips a vector (m) of int (1 or 0), corresponding to the flip to 
-#' apply to each row of <DATA>. For instance, the flip values returned when 
-#' running the clustering application with flip. By default flips=NULL which 
-#' disables data flipping for the realignment.
-#' @param n.shift the number of possible shift states, this 
-#' is the value of the shift paramter used when running the clustering.
-#' @return a matrix (m x n) of numerical corresponding the original data 
-#' after realignment.
-#' @author Romain Groux
-realign.data = function(data, shifts.ref, shifts.dat, flips=NULL, n.shift)
-{ 
-  n.row        = nrow(data)
-  n.col        = ncol(data)
-  l.slice      = n.col - n.shift  + 1
-  flip         = ifelse(is.null(flips), FALSE, TRUE)
-  
-  data.aligned = matrix(data=0, nrow=n.row, ncol=n.col)
-  
-  for(i in 1:n.row)
-  { 
-    from.ref = shifts.ref[i] + 1
-    to.ref   = from.ref + l.slice - 1
-    from.dat = shifts.dat[i] + 1
-    to.dat   = from.dat + l.slice - 1
-    
-    if(flip && flips[i])
-    { data.aligned[i,from.ref:to.ref] =  rev(data[i,from.dat:to.dat]) }
-    else
-    { data.aligned[i,from.ref:to.ref] =      data[i,from.dat:to.dat]  }
-  }
-  return(data.aligned)
-}
-
+source(file.path("bin", "spark_functions.R"))
 
 # usage
 usage = "Rscript realign_data.R [options]\n"
@@ -53,7 +14,7 @@ As SPar-K can shift and flip the data during the partitioning procedure, this pr
 process the data in order to reproduce the alignment performed by SPar-K.\n"
 
 # prologue
-epilogue = "Written by Romain Groux, March 2019\n"
+epilogue = "Written by Romain Groux, November 2018\n"
 # options
 option_list = list(
   make_option(c("--data"), action="store", default=NULL, type="character",

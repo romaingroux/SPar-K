@@ -58,4 +58,4 @@ To get SPar-K help, use : singularity exec <imagename> spark -h
 
 %labels
 	Maintainer Romain Groux
-	Version v1.0
+	Version v1.01
