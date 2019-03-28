@@ -6,10 +6,9 @@ library(optparse, quietly=T)
 initial.options = commandArgs(trailingOnly = FALSE)
 file.arg.name = "--file="
 script.name = sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
-script.dir = file.path(getwd(), dirname(script.name))
+script.dir = dirname(script.name)
 
 # functions
-print(script.dir)
 source(file.path(script.dir, "spark_functions.R"))
 
 # usage
